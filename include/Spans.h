@@ -4,9 +4,12 @@
 // storing either an array of span starts (plus the end), or just the span
 // size if all spans are the same size.
 
-#include <Types.h>
+#include <NEData.h>
 #include <Span.h>
 #include <stdint.h>
+
+OUTER_NAMESPACE_BEGIN
+NEDATA_LIBRARY_NAMESPACE_BEGIN
 
 template<typename INT_T>
 class Spans {
@@ -15,6 +18,8 @@ class Spans {
 		constexpr INLINE UnionType(INT_T spanSize_) : value((spanSize_<<1) | 1) {}
 		constexpr INLINE UnionType(const INT_T* spanStarts) : pointer(spanStarts) {}
 
+		// This is explicitly the same size as the pointer, to avoid issues with
+		// uninitialized data.
 		uintptr_t value;
 
 		// NOTE: If !isUniform(), this is a pointer to an array of numSpans+1
@@ -45,33 +50,33 @@ public:
 
 	using Span = OUTER_NAMESPACE :: COMMON_LIBRARY_NAMESPACE :: Span<INT_T>;
 
-	constexpr INLINE bool isUniform() const {
+	[[nodiscard]] constexpr INLINE bool isUniform() const {
 		return u.value & 1;
 	}
-	constexpr INLINE INT_T uniformSpanSize() const {
+	[[nodiscard]] constexpr INLINE INT_T uniformSpanSize() const {
 		return INT_T(u.value >> 1);
 	}
-	constexpr INLINE INT_T uniformSpanStart(size_t i) const {
+	[[nodiscard]] constexpr INLINE INT_T uniformSpanStart(size_t i) const {
 		return uniformSpanSize() * i;
 	}
 
-	constexpr INLINE const INT_T& nonuniformSpanStart(size_t i) const {
+	[[nodiscard]] constexpr INLINE const INT_T& nonuniformSpanStart(size_t i) const {
 		return u.pointer[i];
 	}
-	constexpr INLINE INT_T spanStart(size_t i) const {
+	[[nodiscard]] constexpr INLINE INT_T spanStart(size_t i) const {
 		return isUniform() ? uniformSpanStart(i) : nonuniformSpanStart(i);
 	}
-	constexpr INLINE INT_T spanSize(size_t i) const {
+	[[nodiscard]] constexpr INLINE INT_T spanSize(size_t i) const {
 		if (isUniform()) {
 			return uniformSpanSize();
 		}
 		return nonuniformSpanStart(i+1) - nonuniformSpanStart(i);
 	}
-	constexpr INLINE INT_T spanEnd(size_t i) const {
+	[[nodiscard]] constexpr INLINE INT_T spanEnd(size_t i) const {
 		++i;
 		return isUniform() ? uniformSpanStart(i) : nonuniformSpanStart(i);
 	}
-	constexpr INLINE Span span(size_t i) const {
+	[[nodiscard]] constexpr INLINE Span span(size_t i) const {
 		if (isUniform()) {
 			const INT_T size = uniformSpanSize();
 			const INT_T start = size*i;
@@ -79,7 +84,10 @@ public:
 		}
 		return Span(nonuniformSpanStart(i), nonuniformSpanStart(i+1));
 	}
-	constexpr INLINE size_t size() const {
+	[[nodiscard]] constexpr INLINE size_t size() const {
 		return numSpans;
 	}
 };
+
+NEDATA_LIBRARY_NAMESPACE_END
+OUTER_NAMESPACE_END
